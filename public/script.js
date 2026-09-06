@@ -73,31 +73,3 @@
     });
   }
 
-  // Função para enviar fotos
-  function enviarFotos() {
-    if (selectedFiles.length === 0) {
-      alert('Selecione pelo menos uma foto ou vídeo para enviar.');
-      return;
-    }
-
-    // Criar mensagem com nomes dos arquivos
-    const nomes = selectedFiles.map(f => f.name).join(', ');
-    const mensagem = `Olá! Gostaria de enviar as seguintes fotos/vídeos do Projeto Amar Angola:\n\n${nomes}\n\nPor favor, me retorne sobre essas imagens.`;
-    
-    // Codificar a mensagem para URL
-    const mensagemCodificada = encodeURIComponent(mensagem);
-    
-    // Abrir WhatsApp com a mensagem
-    const whatsappUrl = `https://wa.me/5516996244103?text=${mensagemCodificada}`;
-    window.open(whatsappUrl, '_blank');
-
-    // Mostrar confirmação e fechar modal
-    setTimeout(() => {
-      alert('Os nomes das fotos foram enviados para o WhatsApp. Agora compartilhe as imagens na conversa!');
-      fecharModal();
-      // Limpar arquivos selecionados
-      selectedFiles = [];
-      previewContainer.style.display = 'none';
-      fileInput.value = '';
-    }, 500);
-  }
