@@ -17,7 +17,10 @@
     }
   }
 
-  function fecharAdminPanel() {
+  async function fecharAdminPanel() {
+    // Mesma lógica do logout: encerra a sessão no servidor para não
+    // ficar logado ao reabrir o painel (mesmo comportamento do "Sair").
+    await fetch('/api/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     document.getElementById('adminLoginForm').reset();
     document.getElementById('adminPanelContainer').style.display = 'none';
   }
@@ -137,21 +140,13 @@
       div.style.background = '#e0d8cc';
       div.style.height = '200px';
 
-      if (item.tipo === 'video') {
-        const video = document.createElement('video');
-        video.src = item.url;
-        video.style.cssText = 'width: 100%; height: 100%; object-fit: cover; cursor: pointer;';
-        video.controls = true;
-        div.appendChild(video);
-      } else {
-        const img = document.createElement('img');
-        img.src = item.url;
-        img.alt = item.nome || 'Foto galeria';
-        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: transform 0.4s ease;';
-        img.addEventListener('mouseover', function() { this.style.transform = 'scale(1.04)'; });
-        img.addEventListener('mouseout', function() { this.style.transform = 'scale(1)'; });
-        div.appendChild(img);
-      }
+      const img = document.createElement('img');
+      img.src = item.url;
+      img.alt = item.nome || 'Foto galeria';
+      img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: transform 0.4s ease;';
+      img.addEventListener('mouseover', function() { this.style.transform = 'scale(1.04)'; });
+      img.addEventListener('mouseout', function() { this.style.transform = 'scale(1)'; });
+      div.appendChild(img);
 
       galeriaGrid.appendChild(div);
     });
@@ -159,7 +154,7 @@
 
   // Deleta pelo ID (UUID) do item no banco, não mais por índice de array
   window.deletarFoto = async function(id) {
-    if (!confirm('Remover esta foto/vídeo da galeria?')) return;
+    if (!confirm('Remover esta foto da galeria?')) return;
 
     const resp = await fetch(`/api/gallery/${id}`, {
       method: 'DELETE',
@@ -191,18 +186,11 @@
       const div = document.createElement('div');
       div.style.cssText = 'position: relative; border-radius: 6px; overflow: hidden; background: #f7f5f0; border: 1px solid rgba(26,26,24,0.1); aspect-ratio: 1; cursor: pointer;';
 
-      if (item.tipo === 'video') {
-        const video = document.createElement('video');
-        video.src = item.url;
-        video.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
-        div.appendChild(video);
-      } else {
-        const img = document.createElement('img');
-        img.src = item.url;
-        img.alt = item.nome || 'Foto';
-        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
-        div.appendChild(img);
-      }
+      const img = document.createElement('img');
+      img.src = item.url;
+      img.alt = item.nome || 'Foto';
+      img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+      div.appendChild(img);
 
       const btnDelete = document.createElement('button');
       btnDelete.innerHTML = '×';
@@ -219,7 +207,7 @@
     });
   }
 
-  // Upload de fotos/vídeos
+  // Upload de fotos
   let adminSelectedFiles = [];
   const adminFileInput = document.getElementById('adminFileInput');
   const adminUploadArea = document.getElementById('adminUploadArea');
@@ -250,7 +238,7 @@
       adminUploadArea.style.background = '';
       adminUploadArea.style.borderColor = '#c8793a';
       adminSelectedFiles = Array.from(e.dataTransfer.files).filter(f =>
-        f.type.startsWith('image/') || f.type.startsWith('video/')
+        f.type.startsWith('image/')
       );
       adminAtualizarPreview();
     });
@@ -273,17 +261,10 @@
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (file.type.startsWith('image/')) {
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
-          div.appendChild(img);
-        } else if (file.type.startsWith('video/')) {
-          const video = document.createElement('video');
-          video.src = e.target.result;
-          video.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
-          div.appendChild(video);
-        }
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+        div.appendChild(img);
       };
       reader.readAsDataURL(file);
 
@@ -303,7 +284,7 @@
 
   async function adminEnviarFotosGaleria() {
     if (!adminSelectedFiles || adminSelectedFiles.length === 0) {
-      alert('Selecione pelo menos uma foto ou vídeo para enviar.');
+      alert('Selecione pelo menos uma foto para enviar.');
       return;
     }
 
@@ -321,7 +302,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nome: file.name,
-          tipo: file.type.startsWith('video/') ? 'video' : 'image',
+          tipo: 'image',
           base64,
         }),
       });
@@ -332,7 +313,7 @@
       }
     }
 
-    alert('Fotos/vídeos adicionados à galeria com sucesso!');
+    alert('Fotos adicionadas à galeria com sucesso!');
     adminSelectedFiles = [];
     if (adminPreviewContainer) adminPreviewContainer.style.display = 'none';
     if (adminFileInput) adminFileInput.value = '';

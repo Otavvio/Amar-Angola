@@ -2,19 +2,26 @@ import crypto from 'crypto';
 import { supabaseAdmin } from '../../lib/supabase.js';
 import { verificarSessao } from '../../lib/auth.js';
 
-// Upload vai como base64 dentro do JSON (mesmo formato que o FileReader do
-// front já produzia), então precisamos de um limite de corpo maior que o
-// padrão. Para arquivos de vídeo grandes, o ideal a médio prazo é trocar
-// isso por upload direto pro Storage via signed URL (ver README-BACKEND.md).
+// Upload vai como base64 dentro do JSON. A Vercel tem um limite fixo de
+// ~4.5MB por requisição em Serverless Functions, que não pode ser
+// aumentado por configuração — por isso a galeria aceita só fotos aqui.
+// Vídeos precisariam de upload direto pro Storage via signed URL, o que
+// está fora do escopo atual (ver README-BACKEND.md).
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '10mb',
+      sizeLimit: '4mb',
     },
   },
 };
 
-const TIPOS_VALIDOS = ['image', 'video'];
+const CONTENT_TYPES = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+};
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -31,25 +38,23 @@ export default async function handler(req, res) {
     const sessao = verificarSessao(req);
     if (!sessao) return res.status(401).json({ erro: 'Não autenticado' });
 
-    const { nome, tipo, base64 } = req.body || {};
-    if (!nome || !tipo || !base64) {
+    const { nome, base64 } = req.body || {};
+    if (!nome || !base64) {
       return res.status(400).json({ erro: 'Dados incompletos' });
     }
-    if (!TIPOS_VALIDOS.includes(tipo)) {
-      return res.status(400).json({ erro: 'Tipo inválido' });
+
+    const extensao = (nome.includes('.') ? nome.split('.').pop() : 'jpg').toLowerCase();
+    const contentType = CONTENT_TYPES[extensao];
+    if (!contentType) {
+      return res.status(400).json({ erro: 'Formato de imagem não suportado' });
     }
 
     const buffer = Buffer.from(base64.split(',').pop(), 'base64');
-    const extensao = nome.includes('.')
-      ? nome.split('.').pop()
-      : tipo === 'video' ? 'mp4' : 'jpg';
     const caminho = `${crypto.randomUUID()}.${extensao}`;
 
     const { error: erroUpload } = await supabaseAdmin.storage
       .from('galeria')
-      .upload(caminho, buffer, {
-        contentType: tipo === 'video' ? 'video/mp4' : 'image/jpeg',
-      });
+      .upload(caminho, buffer, { contentType });
 
     if (erroUpload) return res.status(500).json({ erro: 'Erro ao enviar arquivo' });
 
@@ -59,7 +64,7 @@ export default async function handler(req, res) {
 
     const { data, error } = await supabaseAdmin
       .from('gallery_items')
-      .insert({ url: urlData.publicUrl, storage_path: caminho, tipo, nome })
+      .insert({ url: urlData.publicUrl, storage_path: caminho, tipo: 'image', nome })
       .select()
       .single();
 

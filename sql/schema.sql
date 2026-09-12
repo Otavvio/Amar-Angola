@@ -36,7 +36,7 @@ create table if not exists gallery_items (
   id uuid primary key default gen_random_uuid(),
   url text not null,
   storage_path text not null,
-  tipo text not null check (tipo in ('image', 'video')),
+  tipo text not null check (tipo in ('image')),
   nome text,
   created_at timestamptz not null default now()
 );

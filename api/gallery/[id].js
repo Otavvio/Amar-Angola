@@ -21,7 +21,16 @@ export default async function handler(req, res) {
     return res.status(404).json({ erro: 'Item não encontrado' });
   }
 
-  await supabaseAdmin.storage.from('galeria').remove([item.storage_path]);
+  const { error: erroStorage } = await supabaseAdmin.storage
+    .from('galeria')
+    .remove([item.storage_path]);
+
+  // Não interrompe a exclusão do registro por causa disso — só registra
+  // no log da function para investigar depois um eventual arquivo órfão
+  // no Storage (o mais importante, remover da galeria, ainda funciona).
+  if (erroStorage) {
+    console.error('Falha ao remover arquivo do Storage:', erroStorage.message);
+  }
 
   const { error } = await supabaseAdmin
     .from('gallery_items')

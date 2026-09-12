@@ -19,8 +19,22 @@ export default async function handler(req, res) {
 
     const { doacoes, padrinhos } = req.body || {};
     const campos = { updated_at: new Date().toISOString() };
-    if (doacoes !== undefined) campos.doacoes = doacoes;
-    if (padrinhos !== undefined) campos.padrinhos = padrinhos;
+
+    if (doacoes !== undefined) {
+      const valor = Number(doacoes);
+      if (!Number.isFinite(valor) || valor < 0) {
+        return res.status(400).json({ erro: 'Doações deve ser um número válido e não negativo' });
+      }
+      campos.doacoes = valor;
+    }
+
+    if (padrinhos !== undefined) {
+      const valor = Number(padrinhos);
+      if (!Number.isInteger(valor) || valor < 0) {
+        return res.status(400).json({ erro: 'Padrinhos deve ser um número inteiro válido e não negativo' });
+      }
+      campos.padrinhos = valor;
+    }
 
     const { data, error } = await supabaseAdmin
       .from('stats')
