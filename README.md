@@ -27,40 +27,53 @@ O site é uma landing page estática de página única (SPA por âncoras), com u
 
 A navegação usa scroll suave até essas âncoras, com offset para compensar a navbar fixa, e um menu hambúrguer responsivo (`script.js`).
 
-## 🔐 Painel administrativo
+## 🔐 Painel administrativo em produção
 
-Acessível pelo ícone de admin no cabeçalho (`abrirAdminPanel()`), o painel permite, após login:
+Acessível pelo ícone de admin no cabeçalho, o painel permite, após login:
 
 - Atualizar métricas exibidas no site: **visitas**, **doações** e **total de padrinhos**.
-- Adicionar fotos/vídeos à galeria pública (upload local, sem servidor).
-- Remover fotos previamente adicionadas.
+- Adicionar fotos à galeria pública via backend seguro.
+- Remover fotos previamente publicadas.
 
-Toda a persistência de dados (login, contadores e galeria) é feita via **`localStorage`** do navegador — não há back-end nem banco de dados.
+Toda a persistência real é feita em **Supabase + Serverless Functions da Vercel**. O login usa sessão JWT em cookie seguro, e o conteúdo não fica mais no navegador em `localStorage`.
 
-> ⚠️ **Atenção de segurança:** as credenciais de admin estão fixas em texto puro dentro de `admin.js` (visível a qualquer visitante que inspecione o código-fonte), e a autenticação/dados ficam só no `localStorage` do navegador — ou seja, sem servidor, sem criptografia e sem sincronização entre dispositivos. Isso é adequado apenas para demonstração; **não deve ser usado em produção** sem uma reformulação com autenticação e armazenamento reais no back-end.
+> ⚠️ A autenticação agora é server-side, com credenciais criptografadas e proteção por rate limiting. Isso é a versão adequada para produção.
 
 ## 📸 Envio de fotos pelo público
 
-Visitantes podem selecionar fotos/vídeos no modal de contato; o site gera uma mensagem com os nomes dos arquivos e abre o **WhatsApp** (via link `wa.me`) para que o envio das mídias seja concluído na conversa.
+Visitantes podem selecionar fotos no modal de contato; o site gera a mensagem e abre o **WhatsApp** para comunicação direta com a equipe.
 
 ## 🚀 Como rodar localmente
 
-Por ser um site estático, basta abrir `index.html` em um navegador, ou servir a pasta com um servidor local simples:
+Use a versão com backend localmente e configure as variáveis em `.env.local`:
 
 ```bash
-npx serve .
-# ou
-python3 -m http.server 8000
+npm install
+cp .env.example .env.local
+# edite os valores antes de rodar
+node scripts/criar-admin.js admin "uma-senha-forte-aqui"
+python -m http.server 8000
+```
+
+Para validação rápida do JavaScript:
+
+```bash
+npm run check
 ```
 
 ## 🛠️ Tecnologias usadas
 
-- HTML5 / CSS3 (sem frameworks)
-- JavaScript puro (Vanilla JS, sem dependências)
+- HTML5 / CSS3
+- JavaScript puro
+- Vercel Serverless Functions
+- Supabase Postgres + Storage
+- Upstash Redis para rate limiting
+- JWT em cookie HttpOnly
 - Google Fonts: `DM Serif Display` e `DM Sans`
 - Integração com WhatsApp via `wa.me`
 
 ## 📌 Observações
 
-- Não há build step, bundler ou dependências de terceiros — os três arquivos (`.html`, `.css`, `.js`) podem ser hospedados em qualquer servidor estático (GitHub Pages, Netlify, Vercel, etc.).
-- Os dados do painel admin são **locais ao navegador**: limpar o cache/localStorage apaga fotos e estatísticas cadastradas.
+- O projeto foi migrado para a arquitetura de produção.
+- As variáveis de ambiente precisam ser cadastradas em Vercel antes do deploy.
+- O arquivo `.env.local` não deve ser enviado para o Git.
