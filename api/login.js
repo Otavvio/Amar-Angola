@@ -43,9 +43,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ erro: 'Credenciais inválidas' });
   }
 
+  const {data: session,error: sessionError} = await supabaseAdmin.from('admin_sessions').insert({admin_id:admin.id,expires_at:new Date(Date.now()+28800000).toISOString()}).select('id').single();
+  if (sessionError || !session) return res.status(503).json({erro:'Não foi possível iniciar sessão'});
+  res.setHeader('Cache-Control','no-store');
   res.setHeader(
     'Set-Cookie',
-    criarCookieSessao({ adminId: admin.id, username: admin.username })
+    criarCookieSessao({ adminId: admin.id, username: admin.username, sid: session.id })
   );
   return res.status(200).json({ ok: true });
 }
