@@ -20,18 +20,22 @@ const CONTENT_TYPES = {
   jpeg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
-  gif: 'image/gif',
 };
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { data, error } = await supabaseAdmin
       .from('gallery_items')
-      .select('id, url, tipo, nome, created_at')
+      .select('id, storage_path, tipo, created_at')
       .order('created_at', { ascending: false });
 
     if (error) return res.status(500).json({ erro: 'Erro ao buscar galeria' });
-    return res.status(200).json(data);
+    res.setHeader('Cache-Control', 'no-store');
+    const items = await Promise.all(data.map(async ({storage_path, ...item}) => {
+      const {data: signed, error: signingError} = await supabaseAdmin.storage.from('galeria').createSignedUrl(storage_path, 300);
+      return signingError ? null : {...item, nome: 'Foto do projeto', url: signed.signedUrl};
+    }));
+    return res.status(200).json(items.filter(Boolean));
   }
 
   if (req.method === 'POST') {
@@ -39,7 +43,7 @@ export default async function handler(req, res) {
     if (!sessao) return res.status(401).json({ erro: 'Não autenticado' });
 
     const { nome, base64 } = req.body || {};
-    if (!nome || !base64) {
+    if (typeof nome !== 'string' || nome.length > 255 || typeof base64 !== 'string' || base64.length > 2800000 || !base64) {
       return res.status(400).json({ erro: 'Dados incompletos' });
     }
 
@@ -50,6 +54,11 @@ export default async function handler(req, res) {
     }
 
     const buffer = Buffer.from(base64.split(',').pop(), 'base64');
+    if (!buffer.length || buffer.length > 2097152) return res.status(400).json({erro: 'Imagem excede 2 MB ou está vazia'});
+    const jpeg = buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255;
+    const png = buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+    const webp = buffer.toString('ascii',0,4) === 'RIFF' && buffer.toString('ascii',8,12) === 'WEBP';
+    if (!(contentType === 'image/jpeg' && jpeg || contentType === 'image/png' && png || contentType === 'image/webp' && webp)) return res.status(400).json({erro: 'Conteúdo incompatível com formato'});
     const caminho = `${crypto.randomUUID()}.${extensao}`;
 
     const { error: erroUpload } = await supabaseAdmin.storage
@@ -58,18 +67,20 @@ export default async function handler(req, res) {
 
     if (erroUpload) return res.status(500).json({ erro: 'Erro ao enviar arquivo' });
 
-    const { data: urlData } = supabaseAdmin.storage
-      .from('galeria')
-      .getPublicUrl(caminho);
+
 
     const { data, error } = await supabaseAdmin
       .from('gallery_items')
-      .insert({ url: urlData.publicUrl, storage_path: caminho, tipo: 'image', nome })
+      .insert({ url: caminho, storage_path: caminho, tipo: 'image', nome: 'Foto do projeto' })
       .select()
       .single();
 
-    if (error) return res.status(500).json({ erro: 'Erro ao salvar registro' });
-    return res.status(201).json(data);
+    if (error) {
+      await supabaseAdmin.storage.from('galeria').remove([caminho]);
+      return res.status(500).json({ erro: 'Erro ao salvar registro' });
+    }
+    const {data: signed} = await supabaseAdmin.storage.from('galeria').createSignedUrl(caminho, 300);
+    return res.status(201).json({...data, url: signed?.signedUrl || null});
   }
 
   return res.status(405).json({ erro: 'Método não permitido' });
