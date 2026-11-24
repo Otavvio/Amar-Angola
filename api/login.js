@@ -13,7 +13,8 @@ export default async function handler(req, res) {
     req.socket?.remoteAddress ||
     'desconhecido';
 
-  const { success } = await loginRatelimit.limit(ip);
+  let success;
+  try { ({success} = await loginRatelimit.limit(ip)); } catch { return res.status(503).json({erro: 'Login temporariamente indisponível'}); }
   if (!success) {
     return res.status(429).json({
       erro: 'Muitas tentativas de login. Aguarde um minuto e tente novamente.',
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
   }
 
   const { username, password } = req.body || {};
-  if (!username || !password) {
+  if (typeof username !== 'string' || typeof password !== 'string' || !username || !password || username.length > 100 || Buffer.byteLength(password, 'utf8') > 72) {
     return res.status(400).json({ erro: 'Usuário e senha são obrigatórios' });
   }
 
