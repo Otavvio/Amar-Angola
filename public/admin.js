@@ -27,7 +27,7 @@
 
   async function adminFazerLogin() {
     const username = document.getElementById('adminUsername').value.trim();
-    const password = document.getElementById('adminPassword').value.trim();
+    const password = document.getElementById('adminPassword').value;
 
     const resp = await fetch('/api/login', {
       method: 'POST',
