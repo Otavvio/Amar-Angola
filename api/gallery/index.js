@@ -19,6 +19,7 @@ export const config = {
 
 
 export default async function handler(req, res) {
+  if (process.env.GALLERY_ENABLED !== 'true') { res.setHeader('Cache-Control','no-store'); return res.status(503).json({erro:'Galeria temporariamente indisponível'}); }
   if (req.method === 'GET') {
     const { data, error } = await supabaseAdmin
       .from('gallery_items')
