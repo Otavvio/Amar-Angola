@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const sessao = verificarSessao(req);
+    const sessao = await verificarSessao(req);
     if (!sessao) return res.status(401).json({ erro: 'Não autenticado' });
 
     const { nome, base64 } = req.body || {};
