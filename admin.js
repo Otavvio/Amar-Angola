@@ -25,7 +25,7 @@
 
   async function adminFazerLogin() {
     const username = document.getElementById('adminUsername').value.trim();
-    const password = document.getElementById('adminPassword').value.trim();
+    const password = document.getElementById('adminPassword').value;
 
     const resp = await fetch('/api/login', {
       method: 'POST',
@@ -232,7 +232,7 @@
       e.preventDefault();
       adminUploadArea.style.background = '';
       adminUploadArea.style.borderColor = '#c8793a';
-      adminSelectedFiles = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/') || f.type.startsWith('video/'));
+      adminSelectedFiles = Array.from(e.dataTransfer.files).filter((f) => ['image/jpeg','image/png','image/webp'].includes(f.type) && f.size <= 2097152);
       adminAtualizarPreview();
     });
   }
