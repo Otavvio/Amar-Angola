@@ -1,4 +1,5 @@
 import { protegerMutacao, auditar } from '../../lib/security.js';
+import { tratarImagem } from '../../lib/images.js';
 import crypto from 'crypto';
 import { supabaseAdmin } from '../../lib/supabase.js';
 import { verificarSessao } from '../../lib/auth.js';
@@ -16,12 +17,6 @@ export const config = {
   },
 };
 
-const CONTENT_TYPES = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
-};
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -49,23 +44,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ erro: 'Dados incompletos' });
     }
 
-    const extensao = (nome.includes('.') ? nome.split('.').pop() : 'jpg').toLowerCase();
-    const contentType = CONTENT_TYPES[extensao];
-    if (!contentType) {
-      return res.status(400).json({ erro: 'Formato de imagem não suportado' });
-    }
-
-    const buffer = Buffer.from(base64.split(',').pop(), 'base64');
-    if (!buffer.length || buffer.length > 2097152) return res.status(400).json({erro: 'Imagem excede 2 MB ou está vazia'});
-    const jpeg = buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255;
-    const png = buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
-    const webp = buffer.toString('ascii',0,4) === 'RIFF' && buffer.toString('ascii',8,12) === 'WEBP';
-    if (!(contentType === 'image/jpeg' && jpeg || contentType === 'image/png' && png || contentType === 'image/webp' && webp)) return res.status(400).json({erro: 'Conteúdo incompatível com formato'});
-    const caminho = `${crypto.randomUUID()}.${extensao}`;
+    let buffer;
+    try { buffer = await tratarImagem(base64,nome); }
+    catch { return res.status(400).json({erro:'Imagem inválida. Use JPEG, PNG ou WebP estático de até 2 MiB e 16 megapixels.'}); }
+    const caminho = `${crypto.randomUUID()}.webp`;
 
     const { error: erroUpload } = await supabaseAdmin.storage
       .from('galeria')
-      .upload(caminho, buffer, { contentType });
+      .upload(caminho, buffer, { contentType: 'image/webp', upsert: false });
 
     if (erroUpload) return res.status(500).json({ erro: 'Erro ao enviar arquivo' });
 
