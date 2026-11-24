@@ -14,23 +14,23 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PATCH') {
-    const sessao = verificarSessao(req);
+    const sessao = await verificarSessao(req);
     if (!sessao) return res.status(401).json({ erro: 'Não autenticado' });
 
     const { doacoes, padrinhos } = req.body || {};
     const campos = { updated_at: new Date().toISOString() };
 
     if (doacoes !== undefined) {
-      const valor = Number(doacoes);
-      if (!Number.isFinite(valor) || valor < 0) {
+      const valor = doacoes;
+      if (!Number.isFinite(valor) || valor < 0 || valor > 9999999999.99) {
         return res.status(400).json({ erro: 'Doações deve ser um número válido e não negativo' });
       }
       campos.doacoes = valor;
     }
 
     if (padrinhos !== undefined) {
-      const valor = Number(padrinhos);
-      if (!Number.isInteger(valor) || valor < 0) {
+      const valor = padrinhos;
+      if (!Number.isInteger(valor) || valor < 0 || valor > 2147483647) {
         return res.status(400).json({ erro: 'Padrinhos deve ser um número inteiro válido e não negativo' });
       }
       campos.padrinhos = valor;
