@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
-  const sessao = verificarSessao(req);
+  const sessao = await verificarSessao(req);
   if (!sessao) return res.status(401).json({ erro: 'Não autenticado' });
 
   const { id } = req.query;
