@@ -1,3 +1,4 @@
+import { protegerMutacao, auditar } from '../../lib/security.js';
 import crypto from 'crypto';
 import { supabaseAdmin } from '../../lib/supabase.js';
 import { verificarSessao } from '../../lib/auth.js';
@@ -39,6 +40,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    if (!protegerMutacao(req,res)) return;
     const sessao = await verificarSessao(req);
     if (!sessao) return res.status(401).json({ erro: 'Não autenticado' });
 
@@ -79,6 +81,7 @@ export default async function handler(req, res) {
       await supabaseAdmin.storage.from('galeria').remove([caminho]);
       return res.status(500).json({ erro: 'Erro ao salvar registro' });
     }
+    await auditar(sessao.adminId,'publicar','galeria',data.id);
     const {data: signed} = await supabaseAdmin.storage.from('galeria').createSignedUrl(caminho, 300);
     return res.status(201).json({...data, url: signed?.signedUrl || null});
   }
