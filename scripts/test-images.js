@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import sharp from 'sharp';
+import { tratarImagem } from '../lib/images.js';
+
+const original = await sharp({create:{width:2000,height:1000,channels:3,background:'#abcdef'}}).jpeg().withMetadata().toBuffer();
+const input = 'data:image/jpeg;base64,'+original.toString('base64');
+assert.ok((await sharp(original).metadata()).exif);
+const output = await tratarImagem(input,'teste.jpg');
+const meta = await sharp(output).metadata();
+assert.equal(meta.format,'webp');
+assert.equal(meta.width,1600);
+assert.equal(meta.height,800);
+assert.equal(meta.exif,undefined);
+assert.equal(meta.xmp,undefined);
+assert.equal(meta.icc,undefined);
+await assert.rejects(()=>tratarImagem(input,'teste.png'));
+await assert.rejects(()=>tratarImagem('data:image/jpeg;base64,AAAA','teste.jpg'));
+await assert.rejects(()=>tratarImagem('data:image/svg+xml;base64,AAAA','teste.svg'));
+await assert.rejects(()=>tratarImagem('data:image/jpeg;base64,'+Buffer.alloc(2097153).toString('base64'),'teste.jpg'));
+console.log('Testes de imagens aprovados');
