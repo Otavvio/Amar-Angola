@@ -1,3 +1,4 @@
+import { protegerMutacao, auditar } from '../../lib/security.js';
 import { supabaseAdmin } from '../../lib/supabase.js';
 import { verificarSessao } from '../../lib/auth.js';
 
@@ -6,6 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
+  if (!protegerMutacao(req,res)) return;
   const sessao = await verificarSessao(req);
   if (!sessao) return res.status(401).json({ erro: 'Não autenticado' });
 
@@ -34,5 +36,6 @@ export default async function handler(req, res) {
     .eq('id', id);
 
   if (error) return res.status(500).json({ erro: 'Erro ao remover item' });
+  await auditar(sessao.adminId,'excluir','galeria',id);
   return res.status(200).json({ ok: true });
 }
