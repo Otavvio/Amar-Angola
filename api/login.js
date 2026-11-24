@@ -1,3 +1,4 @@
+import { protegerMutacao, auditar } from '../lib/security.js';
 import bcrypt from 'bcryptjs';
 import { supabaseAdmin } from '../lib/supabase.js';
 import { criarCookieSessao } from '../lib/auth.js';
@@ -8,6 +9,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
+  if (!protegerMutacao(req,res)) return;
   const ip =
     req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
     req.socket?.remoteAddress ||
@@ -50,5 +52,6 @@ export default async function handler(req, res) {
     'Set-Cookie',
     criarCookieSessao({ adminId: admin.id, username: admin.username, sid: session.id })
   );
+  await auditar(admin.id,'login','sessao',session.id);
   return res.status(200).json({ ok: true });
 }
