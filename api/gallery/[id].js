@@ -10,6 +10,7 @@ export default async function handler(req, res) {
   if (!sessao) return res.status(401).json({ erro: 'Não autenticado' });
 
   const { id } = req.query;
+  if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return res.status(400).json({erro: 'ID inválido'});
 
   const { data: item, error: erroBusca } = await supabaseAdmin
     .from('gallery_items')
@@ -25,12 +26,7 @@ export default async function handler(req, res) {
     .from('galeria')
     .remove([item.storage_path]);
 
-  // Não interrompe a exclusão do registro por causa disso — só registra
-  // no log da function para investigar depois um eventual arquivo órfão
-  // no Storage (o mais importante, remover da galeria, ainda funciona).
-  if (erroStorage) {
-    console.error('Falha ao remover arquivo do Storage:', erroStorage.message);
-  }
+  if (erroStorage) return res.status(500).json({erro: 'Erro ao remover arquivo'});
 
   const { error } = await supabaseAdmin
     .from('gallery_items')
