@@ -1,3 +1,4 @@
+import { protegerMutacao, auditar } from '../lib/security.js';
 import { supabaseAdmin } from '../lib/supabase.js';
 import { verificarSessao } from '../lib/auth.js';
 
@@ -14,6 +15,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PATCH') {
+    if (!protegerMutacao(req,res)) return;
     const sessao = await verificarSessao(req);
     if (!sessao) return res.status(401).json({ erro: 'Não autenticado' });
 
@@ -44,6 +46,7 @@ export default async function handler(req, res) {
       .single();
 
     if (error) return res.status(500).json({ erro: 'Erro ao salvar estatísticas' });
+    await auditar(sessao.adminId,'atualizar','stats','1',campos);
     return res.status(200).json(data);
   }
 
