@@ -27,7 +27,12 @@ export default async function handler(req,res){
  if(!p||data<p.inicio||(p.encerramento&&data>p.encerramento))return res.status(400).json({erro:'Apadrinhamento inválido para a data'});
  }
  const {error}=await supabaseAdmin.from('movimentacoes').insert({id,tipo,valor,data,descricao:descricao.trim(),apadrinhamento_id:apadrinhamento_id||null,created_by:sessao.adminId});
- if(error?.code==='23505')return res.status(409).json({erro:'Registro já existente'});
+ if(error?.code==='23505'){
+ const {data:existente,error:consulta}=await supabaseAdmin.from('movimentacoes').select('id,tipo,valor,data,descricao,apadrinhamento_id,created_by').eq('id',id).maybeSingle();
+ if(consulta)throw consulta;
+ if(existente&&existente.created_by===sessao.adminId&&existente.tipo===tipo&&Number(existente.valor)===valor&&existente.data===data&&existente.descricao===descricao.trim()&&existente.apadrinhamento_id===(apadrinhamento_id||null))return res.status(200).json({id,repetido:true});
+ return res.status(409).json({erro:'Identificador já utilizado com outros dados'});
+ }
  if(error)throw error;
  await auditar(sessao.adminId,'criar','movimentacao',id,{tipo});
  return res.status(201).json({id});
