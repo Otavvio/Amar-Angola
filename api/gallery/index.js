@@ -19,9 +19,17 @@ export const config = {
 
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control','no-store');
   if (req.method === 'GET' && req.query?.privada !== '1' && process.env.GALLERY_ENABLED !== 'true') { res.setHeader('Cache-Control','no-store'); return res.status(503).json({erro:'Galeria temporariamente indisponível'}); }
   if (req.method === 'GET') {
-    if(req.query?.privada !== '1') return res.status(503).json({erro:'Publicação ainda bloqueada'});
+    if(req.query?.privada !== '1'){
+      const pagina=req.query?.pagina??'0';
+      if(typeof pagina!=='string'||!/^\d{1,4}$/.test(pagina))return res.status(400).json({erro:'Página inválida'});
+      const offset=Number(pagina)*24;
+      const {data,error,count}=await supabaseAdmin.from('gallery_items').select('id,titulo,descricao,evento',{count:'exact'}).eq('estado','aprovada').eq('tipo','image').not('autorizacao_ref','is',null).not('autorizacao_verificada_em','is',null).not('autorizacao_verificada_por','is',null).order('created_at',{ascending:false}).order('id').range(offset,offset+23);
+      if(error)return res.status(503).json({erro:'Galeria indisponível'});
+      return res.status(200).json({items:data.map(item=>({...item,url:'/api/foto?id='+encodeURIComponent(item.id)})),mais:offset+24<count});
+    }
     if(!await verificarSessao(req)) return res.status(401).json({erro:'Não autenticado'});
     const { data, error } = await supabaseAdmin
       .from('gallery_items')
