@@ -5,8 +5,8 @@ const date=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(Date.pa
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
- if(!['GET','POST'].includes(req.method))return res.status(405).json({erro:'Método não permitido'});
- if(req.method==='POST'&&!protegerMutacao(req,res))return;
+ if(!['GET','POST','PATCH'].includes(req.method))return res.status(405).json({erro:'Método não permitido'});
+ if(req.method!=='GET'&&!protegerMutacao(req,res))return;
  try{
  const s=await verificarSessao(req);
  if(!s)return res.status(401).json({erro:'Não autenticado'});
@@ -17,6 +17,14 @@ export default async function handler(req,res){
  const {data,error,count}=await supabaseAdmin.from('apadrinhamentos').select('id,referencia,inicio,encerramento',{count:'exact'}).order('inicio',{ascending:false}).order('id').range(offset,offset+99);
  if(error)throw error;
  return res.status(200).json({apadrinhamentos:data,total:count,pagina:Number(pagina)});
+ }
+ if(req.method==='PATCH'){
+ const {id,encerramento,motivo}=req.body||{};
+ if(!uuid(id)||!date(encerramento)||typeof motivo!=='string'||!motivo.trim()||motivo.trim().length>300)return res.status(400).json({erro:'Informe data e motivo válidos'});
+ const {data,error}=await supabaseAdmin.rpc('encerrar_apadrinhamento',{p_id:id,p_data:encerramento,p_motivo:motivo.trim(),p_admin:s.adminId});
+ if(error)throw error;
+ if(!data)return res.status(409).json({erro:'Encerramento incompatível com o vínculo ou contribuições existentes'});
+ return res.status(200).json({ok:true});
  }
  const {id,referencia,inicio}=req.body||{};
  if(!uuid(id)||typeof referencia!=='string'||!referencia.trim()||referencia.trim().length>120||!date(inicio))return res.status(400).json({erro:'Dados inválidos'});
