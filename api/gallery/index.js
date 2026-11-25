@@ -19,12 +19,14 @@ export const config = {
 
 
 export default async function handler(req, res) {
-  if (process.env.GALLERY_ENABLED !== 'true') { res.setHeader('Cache-Control','no-store'); return res.status(503).json({erro:'Galeria temporariamente indisponível'}); }
+  if (req.method === 'GET' && req.query?.privada !== '1' && process.env.GALLERY_ENABLED !== 'true') { res.setHeader('Cache-Control','no-store'); return res.status(503).json({erro:'Galeria temporariamente indisponível'}); }
   if (req.method === 'GET') {
+    if(req.query?.privada !== '1') return res.status(503).json({erro:'Publicação ainda bloqueada'});
+    if(!await verificarSessao(req)) return res.status(401).json({erro:'Não autenticado'});
     const { data, error } = await supabaseAdmin
       .from('gallery_items')
       .select('id, storage_path, tipo, created_at')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }).limit(100);
 
     if (error) return res.status(500).json({ erro: 'Erro ao buscar galeria' });
     res.setHeader('Cache-Control', 'no-store');
@@ -68,9 +70,9 @@ export default async function handler(req, res) {
       await supabaseAdmin.storage.from('galeria').remove([caminho]);
       return res.status(500).json({ erro: 'Erro ao salvar registro' });
     }
-    await auditar(sessao.adminId,'publicar','galeria',data.id);
+    await auditar(sessao.adminId,'enviar_privado','galeria',data.id);
     const {data: signed} = await supabaseAdmin.storage.from('galeria').createSignedUrl(caminho, 300);
-    return res.status(201).json({...data, url: signed?.signedUrl || null});
+    return res.status(201).json({id:data.id,url:signed?.signedUrl || null});
   }
 
   return res.status(405).json({ erro: 'Método não permitido' });
