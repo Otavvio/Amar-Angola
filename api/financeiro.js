@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '../lib/supabase.js';
 import { verificarSessao } from '../lib/auth.js';
-import { protegerMutacao, auditar } from '../lib/security.js';
+import { protegerMutacao } from '../lib/security.js';
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const date=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
 const str=(v,n)=>typeof v==='string'&&v.trim().length>0&&v.trim().length<=n;
@@ -43,7 +43,6 @@ export default async function handler(req,res){
  }
  if(error?.code==='23514')return res.status(400).json({erro:'Contribuição fora do período permitido'});
  if(error)throw error;
- await auditar(sessao.adminId,'criar','movimentacao',id,{tipo});
  return res.status(201).json({id});
  }catch(e){console.error('Falha financeira',e.code||'interno');return res.status(503).json({erro:'Serviço financeiro indisponível'});}
 }
