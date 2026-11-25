@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "python -m http.server 8000",
     "check": "node scripts/check-syntax.js",
-    "build": "node -e \"const fs=require('node:fs'); fs.rmSync('dist',{recursive:true,force:true}); fs.mkdirSync('dist'); for(const file of ['index.html','privacidade.html','style.css','institucional.js']) fs.copyFileSync(file,'dist/'+file);\""
+    "build": "node -e \"const fs=require('node:fs'); fs.rmSync('dist',{recursive:true,force:true}); fs.mkdirSync('dist'); for(const file of ['index.html','privacidade.html','style.css','institucional.js','admin.html','painel.css','painel.js']) fs.copyFileSync(file,'dist/'+file);\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
