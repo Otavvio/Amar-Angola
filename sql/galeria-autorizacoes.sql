@@ -1,0 +1,6 @@
+BEGIN;
+ALTER TABLE public.gallery_items ADD COLUMN titulo text NOT NULL DEFAULT 'Foto do projeto' CHECK(char_length(titulo) BETWEEN 1 AND 100), ADD COLUMN descricao text NOT NULL DEFAULT '' CHECK(char_length(descricao)<=300), ADD COLUMN evento text NOT NULL DEFAULT '' CHECK(char_length(evento)<=100), ADD COLUMN estado text NOT NULL DEFAULT 'privada' CHECK(estado IN ('privada','aprovada','oculta')), ADD COLUMN autorizacao_ref text CHECK(char_length(autorizacao_ref) BETWEEN 1 AND 100), ADD COLUMN autorizacao_verificada_em timestamptz, ADD COLUMN autorizacao_verificada_por uuid REFERENCES public.admins(id), ADD CONSTRAINT galeria_autorizacao CHECK(estado<>'aprovada' OR (autorizacao_ref IS NOT NULL AND autorizacao_verificada_em IS NOT NULL AND autorizacao_verificada_por IS NOT NULL));
+ALTER TABLE public.gallery_items ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.gallery_items FROM PUBLIC,anon,authenticated;
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.gallery_items TO service_role;
+COMMIT;
