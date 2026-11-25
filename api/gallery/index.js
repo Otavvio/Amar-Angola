@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     if(!await verificarSessao(req)) return res.status(401).json({erro:'Não autenticado'});
     const { data, error } = await supabaseAdmin
       .from('gallery_items')
-      .select('id, storage_path, tipo, created_at')
+      .select('id, storage_path, tipo, created_at, titulo, descricao, evento, estado, autorizacao_ref, autorizacao_verificada_em')
       .order('created_at', { ascending: false }).limit(100);
 
     if (error) return res.status(500).json({ erro: 'Erro ao buscar galeria' });
