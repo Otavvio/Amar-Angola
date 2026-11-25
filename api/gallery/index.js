@@ -31,10 +31,13 @@ export default async function handler(req, res) {
       return res.status(200).json({items:data.map(item=>({...item,url:'/api/foto?id='+encodeURIComponent(item.id)})),mais:offset+24<count});
     }
     if(!await verificarSessao(req)) return res.status(401).json({erro:'Não autenticado'});
-    const { data, error } = await supabaseAdmin
+    const pagina=req.query?.pagina??'0';
+    if(typeof pagina!=='string'||!/^\d{1,4}$/.test(pagina))return res.status(400).json({erro:'Página inválida'});
+    const offset=Number(pagina)*24;
+    const { data, error, count } = await supabaseAdmin
       .from('gallery_items')
-      .select('id, storage_path, tipo, created_at, titulo, descricao, evento, estado, autorizacao_ref, autorizacao_verificada_em')
-      .order('created_at', { ascending: false }).limit(100);
+      .select('id, storage_path, tipo, created_at, titulo, descricao, evento, estado, autorizacao_ref, autorizacao_verificada_em',{count:'exact'})
+      .order('created_at', { ascending: false }).order('id').range(offset,offset+23);
 
     if (error) return res.status(500).json({ erro: 'Erro ao buscar galeria' });
     res.setHeader('Cache-Control', 'no-store');
@@ -42,7 +45,7 @@ export default async function handler(req, res) {
       const {data: signed, error: signingError} = await supabaseAdmin.storage.from('galeria').createSignedUrl(storage_path, 300);
       return signingError ? null : {...item, nome: 'Foto do projeto', url: signed.signedUrl};
     }));
-    return res.status(200).json(items.filter(Boolean));
+    return res.status(200).json({items:items.filter(Boolean),mais:offset+24<count});
   }
 
   if (req.method === 'POST') {
