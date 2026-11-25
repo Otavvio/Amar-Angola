@@ -9,6 +9,7 @@ if(!await verificarSessao(req))return res.status(401).json({erro:'Não autentica
 const {inicio,fim}=req.query||{};
 if(!date(inicio)||!date(fim)||inicio>fim||Date.parse(fim)-Date.parse(inicio)>366*86400000)return res.status(400).json({erro:'Informe um período de até um ano'});
 const totais={doacao:0n,apadrinhamento:0n,despesa:0n},meses={};
+for(let m=new Date(inicio.slice(0,7)+'-01T00:00:00Z');m.toISOString().slice(0,7)<=fim.slice(0,7);m.setUTCMonth(m.getUTCMonth()+1)){meses[m.toISOString().slice(0,7)]={doacao:0n,apadrinhamento:0n,despesa:0n}}
 let offset=0;
 while(true){
 const {data,error}=await supabaseAdmin.from('movimentacoes').select('id,tipo,valor,data').gte('data',inicio).lte('data',fim).order('id').range(offset,offset+499);
@@ -18,7 +19,7 @@ if(data.length<500)break;
 offset+=500;
 if(offset>=50000)return res.status(503).json({erro:'Período muito volumoso; reduza o intervalo'});
 }
-const {count,error}=await supabaseAdmin.from('apadrinhamentos').select('id',{count:'exact',head:true}).lte('inicio',fim).or('encerramento.is.null,encerramento.gt.'+fim);
+const {count,error}=await supabaseAdmin.from('apadrinhamentos').select('id',{count:'exact',head:true}).lte('inicio',fim).or('encerramento.is.null,encerramento.gte.'+fim);
 if(error)throw error;
 const {data:stats,error:se}=await supabaseAdmin.from('stats').select('visitas').eq('id',1).single();if(se)throw se;
 const money=v=>v.toString();
