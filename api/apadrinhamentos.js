@@ -1,6 +1,6 @@
 import {supabaseAdmin} from '../lib/supabase.js';
 import {verificarSessao} from '../lib/auth.js';
-import {protegerMutacao,auditar} from '../lib/security.js';
+import {protegerMutacao} from '../lib/security.js';
 const date=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 export default async function handler(req,res){
@@ -31,7 +31,6 @@ export default async function handler(req,res){
  const {error}=await supabaseAdmin.from('apadrinhamentos').insert({id,referencia:referencia.trim(),inicio,created_by:s.adminId});
  if(error?.code==='23505')return res.status(409).json({erro:'Registro já existente'});
  if(error)throw error;
- await auditar(s.adminId,'criar','apadrinhamento',id);
  return res.status(201).json({id});
  }catch(e){console.error('Falha apadrinhamentos',e.code||'interno');return res.status(503).json({erro:'Serviço indisponível'});}
 }
