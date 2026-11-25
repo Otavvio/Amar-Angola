@@ -8,3 +8,25 @@ $('loginForm').addEventListener('submit',e=>{e.preventDefault();const f=e.curren
 $('statsForm').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;run(f.querySelector('button'),async()=>{await api('stats',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({doacoes:f.elements.doacoes.valueAsNumber,padrinhos:f.elements.padrinhos.valueAsNumber})});await refresh();status.textContent='Totais salvos.'})});
 $('logout').addEventListener('click',()=>run($('logout'),async()=>{await api('logout',{method:'POST'});show(false);status.textContent='Sessão encerrada.'}));
 refresh().catch(()=>{show(false);status.textContent='Não foi possível verificar a sessão.'});
+
+let pagina=0;
+const mov=$('movForm'),vf=$('vinculoForm'),ff=$('filtroForm');
+const hoje=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const partes=new Intl.DateTimeFormat('en-GB',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+const part=t=>partes.find(p=>p.type===t).value;
+const dia=part('year')+'-'+part('month')+'-'+part('day');
+mov.elements.data.value=dia;vf.elements.inicio.value=dia;ff.elements.inicio.value=dia.slice(0,4)+'-01-01';ff.elements.fim.value=dia;
+function tipoChanged(){const b=mov.elements.tipo.value==='apadrinhamento';$('vinculoLabel').hidden=!b;mov.elements.apadrinhamento_id.required=b}
+mov.elements.tipo.addEventListener('change',tipoChanged);tipoChanged();
+async function vinculos(){const list=$('vinculoLista'),sel=mov.elements.apadrinhamento_id;list.replaceChildren();sel.replaceChildren(new Option('Selecione',''));let p=0,total=0;do{const d=await api('apadrinhamentos?pagina='+p);total=d.total;for(const v of d.apadrinhamentos){const li=document.createElement('li');li.textContent=v.referencia+' — '+(v.encerramento?'Encerrado':'Sem encerramento');list.append(li);sel.add(new Option(v.referencia,v.id))}p++;if(!d.apadrinhamentos.length)break}while(p*100<total&&p<10000)}
+async function historico(){const q=new URLSearchParams(new FormData(ff));q.set('pagina',pagina);const d=await api('financeiro?'+q);const body=$('movLista');body.replaceChildren();for(const m of d.movimentacoes){const tr=document.createElement('tr');for(const v of [m.data,({doacao:'Doação',despesa:'Despesa',apadrinhamento:'Contribuição'})[m.tipo],m.descricao,Number(m.valor).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})]){const td=document.createElement('td');td.textContent=v;tr.append(td)}body.append(tr)}$('historicoInfo').textContent=d.total+' registros — página '+(pagina+1);$('anterior').disabled=pagina===0;$('proxima').disabled=(pagina+1)*100>=d.total}
+function post(path,data){return api(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})}
+let movId=null,vinculoId=null;
+mov.addEventListener('input',()=>{movId=null});vf.addEventListener('input',()=>{vinculoId=null});
+mov.addEventListener('submit',e=>{e.preventDefault();run(mov.querySelector('button'),async()=>{const d=Object.fromEntries(new FormData(mov));d.valor=mov.elements.valor.valueAsNumber;d.id=movId??=crypto.randomUUID();if(d.tipo!=='apadrinhamento')delete d.apadrinhamento_id;await post('financeiro',d);movId=null;mov.reset();mov.elements.data.value=dia;tipoChanged();status.textContent='Movimentação registrada.';pagina=0;await historico()})});
+vf.addEventListener('submit',e=>{e.preventDefault();run(vf.querySelector('button'),async()=>{await post('apadrinhamentos',{...Object.fromEntries(new FormData(vf)),id:vinculoId??=crypto.randomUUID()});vinculoId=null;vf.reset();vf.elements.inicio.value=dia;status.textContent='Apadrinhamento cadastrado.';await vinculos()})});
+ff.addEventListener('submit',e=>{e.preventDefault();pagina=0;run(ff.querySelector('button'),historico)});
+$('anterior').addEventListener('click',()=>{if(pagina>0){pagina--;run($('anterior'),historico)}});
+$('proxima').addEventListener('click',()=>{pagina++;run($('proxima'),historico)});
+const observer=new MutationObserver(()=>{if(!$('dashboard').hidden){Promise.all([vinculos(),historico()]).catch(e=>{status.textContent=e.message})}else{$('movLista').replaceChildren();$('vinculoLista').replaceChildren();mov.elements.apadrinhamento_id.replaceChildren();mov.reset();vf.reset();mov.elements.data.value=dia;vf.elements.inicio.value=dia;tipoChanged();movId=null;vinculoId=null}});
+observer.observe($('dashboard'),{attributes:true,attributeFilter:['hidden']});
