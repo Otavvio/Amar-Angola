@@ -12,7 +12,7 @@ const totais={doacao:0n,apadrinhamento:0n,despesa:0n},meses={};
 for(let m=new Date(inicio.slice(0,7)+'-01T00:00:00Z');m.toISOString().slice(0,7)<=fim.slice(0,7);m.setUTCMonth(m.getUTCMonth()+1)){meses[m.toISOString().slice(0,7)]={doacao:0n,apadrinhamento:0n,despesa:0n}}
 let offset=0;
 while(true){
-const {data,error}=await supabaseAdmin.from('movimentacoes').select('id,tipo,valor,data').gte('data',inicio).lte('data',fim).order('id').range(offset,offset+499);
+const {data,error}=await supabaseAdmin.from('movimentacoes').select('id,tipo,valor,data').is('cancelado_em',null).gte('data',inicio).lte('data',fim).order('id').range(offset,offset+499);
 if(error)throw error;
 for(const m of data){const cents=BigInt(Math.round(Number(m.valor)*100));totais[m.tipo]+=cents;const mes=m.data.slice(0,7);meses[mes]??={doacao:0n,apadrinhamento:0n,despesa:0n};meses[mes][m.tipo]+=cents}
 if(data.length<500)break;
