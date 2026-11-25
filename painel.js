@@ -1,11 +1,10 @@
 const $=id=>document.getElementById(id);
 const status=$('status');
 async function api(path,options={}){const r=await fetch('/api/'+path,{cache:'no-store',...options});const data=await r.json();if(!r.ok)throw new Error(data.erro||'Falha na operação');return data}
-function show(logado){$('login').hidden=logado;$('dashboard').hidden=!logado;if(!logado){for(const id of ['doacoes','padrinhos','visitas'])$(id).textContent='—';$('statsForm').reset()}}
-async function refresh(){const s=await api('session');show(s.logado);if(!s.logado)return;const d=await api('stats');$('doacoes').textContent=Number(d.doacoes).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});$('padrinhos').textContent=d.padrinhos;$('visitas').textContent=d.visitas;$('statsForm').elements.doacoes.value=d.doacoes;$('statsForm').elements.padrinhos.value=d.padrinhos}
+function show(logado){$('login').hidden=logado;$('dashboard').hidden=!logado}
+async function refresh(){const s=await api('session');show(s.logado)}
 async function run(button,fn){button.disabled=true;status.textContent='';try{await fn()}catch(e){status.textContent=e.message;try{if(!(await api('session')).logado)show(false)}catch{show(false)}}finally{if(!['anterior','proxima','galeriaAnterior','galeriaProxima'].includes(button.id))button.disabled=false}}
 $('loginForm').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;const body=JSON.stringify(Object.fromEntries(new FormData(f)));f.elements.password.value='';run(f.querySelector('button'),async()=>{await api('login',{method:'POST',headers:{'Content-Type':'application/json'},body});await refresh()})});
-$('statsForm').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;run(f.querySelector('button'),async()=>{await api('stats',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({doacoes:f.elements.doacoes.valueAsNumber,padrinhos:f.elements.padrinhos.valueAsNumber})});await refresh();status.textContent='Totais salvos.'})});
 $('logout').addEventListener('click',()=>run($('logout'),async()=>{await api('logout',{method:'POST'});show(false);status.textContent='Sessão encerrada.'}));
 refresh().catch(()=>{show(false);status.textContent='Não foi possível verificar a sessão.'});
 
