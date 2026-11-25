@@ -33,6 +33,7 @@ export default async function handler(req,res){
  if(existente&&existente.created_by===sessao.adminId&&existente.tipo===tipo&&Number(existente.valor)===valor&&existente.data===data&&existente.descricao===descricao.trim()&&existente.apadrinhamento_id===(apadrinhamento_id||null))return res.status(200).json({id,repetido:true});
  return res.status(409).json({erro:'Identificador já utilizado com outros dados'});
  }
+ if(error?.code==='23514')return res.status(400).json({erro:'Contribuição fora do período permitido'});
  if(error)throw error;
  await auditar(sessao.adminId,'criar','movimentacao',id,{tipo});
  return res.status(201).json({id});
