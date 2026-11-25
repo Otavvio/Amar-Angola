@@ -1,5 +1,26 @@
-const toggle=document.getElementById('navToggle');
-const links=document.getElementById('navLinks');
-toggle?.setAttribute('aria-expanded','false');
-toggle?.addEventListener('click',()=>{const open=links.classList.toggle('active');toggle.setAttribute('aria-expanded',String(open));});
-links?.addEventListener('click',e=>{if(e.target.closest('a')){links.classList.remove('active');toggle.setAttribute('aria-expanded','false');}});
+const toggle = document.getElementById('navToggle');
+const links = document.getElementById('navLinks');
+
+if (toggle && links) {
+  toggle.setAttribute('aria-controls', links.id);
+  function setOpen(open) {
+    links.classList.toggle('open', open);
+    toggle.classList.toggle('open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+  }
+  setOpen(false);
+  toggle.addEventListener('click', () => setOpen(!links.classList.contains('open')));
+  links.addEventListener('click', event => {
+    if (event.target.closest('a')) {
+      if (links.classList.contains('open')) toggle.focus();
+      setOpen(false);
+    }
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && links.classList.contains('open')) {
+      setOpen(false);
+      toggle.focus();
+    }
+  });
+}
