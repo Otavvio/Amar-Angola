@@ -24,3 +24,6 @@ if (toggle && links) {
     }
   });
 }
+
+// Contagem aproximada, limitada por cookie e rate limit no servidor.
+fetch('/api/visit',{method:'POST',credentials:'same-origin',cache:'no-store'}).catch(()=>{});
