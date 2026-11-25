@@ -6,8 +6,8 @@ const date=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(Date.pa
 const str=(v,n)=>typeof v==='string'&&v.trim().length>0&&v.trim().length<=n;
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
- if(!['GET','POST'].includes(req.method))return res.status(405).json({erro:'Método não permitido'});
- if(req.method==='POST'&&!protegerMutacao(req,res))return;
+ if(!['GET','POST','PATCH'].includes(req.method))return res.status(405).json({erro:'Método não permitido'});
+ if(req.method!=='GET'&&!protegerMutacao(req,res))return;
  try{
  const sessao=await verificarSessao(req);
  if(!sessao)return res.status(401).json({erro:'Não autenticado'});
@@ -15,9 +15,17 @@ export default async function handler(req,res){
  const {inicio,fim,pagina='0'}=req.query||{};
  if(!date(inicio)||!date(fim)||inicio>fim||typeof pagina!=='string'||!/^\d{1,4}$/.test(pagina))return res.status(400).json({erro:'Período ou página inválidos'});
  const offset=Number(pagina)*100;
- const {data,error,count}=await supabaseAdmin.from('movimentacoes').select('id,tipo,valor,data,descricao,apadrinhamento_id',{count:'exact'}).gte('data',inicio).lte('data',fim).order('data',{ascending:false}).order('id').range(offset,offset+99);
+ const {data,error,count}=await supabaseAdmin.from('movimentacoes').select('id,tipo,valor,data,descricao,apadrinhamento_id,cancelado_em,cancelamento_motivo',{count:'exact'}).gte('data',inicio).lte('data',fim).order('data',{ascending:false}).order('id').range(offset,offset+99);
  if(error)throw error;
  return res.status(200).json({movimentacoes:data,total:count,pagina:Number(pagina)});
+ }
+ if(req.method==='PATCH'){
+ const {id,motivo}=req.body||{};
+ if(!uuid(id)||!str(motivo,300))return res.status(400).json({erro:'Informe identificador e motivo válidos'});
+ const {data,error}=await supabaseAdmin.rpc('cancelar_movimentacao',{p_id:id,p_motivo:motivo.trim(),p_admin:sessao.adminId});
+ if(error)throw error;
+ if(!data)return res.status(409).json({erro:'Registro inexistente ou já cancelado'});
+ return res.status(200).json({ok:true});
  }
  const {tipo,valor,data,descricao,apadrinhamento_id,id}=req.body||{};
  if(!uuid(id)||!['doacao','apadrinhamento','despesa'].includes(tipo)||typeof valor!=='number'||!Number.isFinite(valor)||valor<=0||valor>9999999999.99||Math.abs(valor*100-Math.round(valor*100))>0.001||!date(data)||!str(descricao,300)||(tipo==='apadrinhamento'?!uuid(apadrinhamento_id):apadrinhamento_id!=null))return res.status(400).json({erro:'Dados inválidos'});
