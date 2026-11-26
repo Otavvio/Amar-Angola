@@ -37,3 +37,22 @@ th{background:#f5f6f8;font-size:.85rem}td{font-size:.9rem}#fotosAdmin article{mi
 @media(max-width:540px){main{padding:12px}#dashboard .workspace section{padding:16px}form{grid-template-columns:1fr}.modules a{flex:1 1 125px}.cards{grid-template-columns:1fr}.workspaceHeader{align-items:flex-start}.workspaceHeader h2{font-size:1.35rem}}
 }
 @media print{.sidebar,.workspaceHeader,#visao{display:none!important}.workspace{display:block}#dashboard{display:block}body:not(.print-consolidado) #historico[hidden]{display:block!important}}
+
+@media screen{
+.metric{position:relative;border-top:3px solid #92512c!important;min-height:125px}
+.metric span{display:block;line-height:1.4;min-height:2.8em}
+.metric strong{font-variant-numeric:tabular-nums;margin-top:8px}
+.metric-0,.metric-1,.metric-2{border-top-color:#39805b!important}
+.metric-3{border-top-color:#b85a42!important}
+.metric-4{border-top-color:#92512c!important}
+.metric-5,.metric-6{border-top-color:#607c91!important}
+.mes b{text-transform:capitalize;color:#4b3b31}
+.mes progress.receita{accent-color:#39805b}.mes progress.despesa{accent-color:#b85a42}
+.empty-state{text-align:center;color:#686c73;padding:30px 16px;background:#f8f9fb;border-radius:10px;grid-column:1/-1}
+.modules a{transition:background .15s ease}
+.modules a[aria-current=page]{box-shadow:inset 3px 0 #e8b58d}
+.workspaceHeader{border-bottom:1px solid #e0e3e8;margin-bottom:20px}
+#status:not(:empty){background:#fff8ec;border:1px solid #e6cda9;padding:12px 16px;border-radius:10px;overflow-wrap:anywhere}
+#fotosAdmin article button{margin-top:8px}
+@media(prefers-reduced-motion:reduce){.modules a{transition:none}}
+}
