@@ -65,14 +65,15 @@ $('imprimirConsolidado').addEventListener('click',()=>{if($('dashboard').hidden|
 new MutationObserver(()=>{if($('dashboard').hidden){limparRelatorio();rf.reset();rf.elements.ano.value=dia.slice(0,4)}}).observe($('dashboard'),{attributes:true,attributeFilter:['hidden']});
 
 const workspace=document.querySelector('.workspace'),movement=$('movimentos'),slot=$('contributionSlot');
+let moduloAtual=null;
 const routes={visao:'Visão geral',doacoes:'Doações',vinculos:'Apadrinhamentos',despesas:'Despesas',historico:'Histórico',relatoriosAdmin:'Relatórios',galeriaAdmin:'Galeria de fotos'};
 function atualizarVisao(){for(const [from,to] of [['resumoCards','overviewCards'],['grafico','overviewChart']])$(to).replaceChildren(...Array.from($(from).children,x=>x.cloneNode(true)));$('overviewPeriod').textContent=$('periodoRelatorio').textContent}
 function abrirModulo(){const hash=location.hash.slice(1),key=Object.hasOwn(routes,hash)?hash:'visao';const target=['doacoes','despesas'].includes(key)?'movimentos':key;
-if(key==='vinculos')slot.append(movement);else workspace.append(movement);
+if(key==='vinculos'){if(movement.parentElement!==slot)slot.append(movement)}else if(movement.parentElement!==workspace)workspace.append(movement);
 for(const s of workspace.querySelectorAll(':scope > section'))s.hidden=s.id!==target;
 movement.hidden=!['doacoes','despesas','vinculos'].includes(key);
 if(!movement.hidden){const tipo={doacoes:'doacao',despesas:'despesa',vinculos:'apadrinhamento'}[key];if(mov.elements.tipo.value!==tipo){mov.reset();movId=null;mov.elements.data.value=dia;mov.elements.tipo.value=tipo;}tipoChanged();mov.elements.tipo.closest('label').hidden=true;$('movementTitle').textContent={doacoes:'Registrar doação',despesas:'Registrar despesa',vinculos:'Registrar contribuição'}[key];}
-$('moduleTitle').textContent=routes[key];for(const a of document.querySelectorAll('.modules a')){if(a.hash==='#'+key)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}}
+$('moduleTitle').textContent=routes[key];if(moduloAtual!==key){moduloAtual=key;document.title=routes[key]+' | Amar Angola';if(!$('dashboard').hidden)window.scrollTo(0,0);}for(const a of document.querySelectorAll('.modules a')){if(a.hash==='#'+key)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}}
 window.addEventListener('hashchange',abrirModulo);
-new MutationObserver(()=>{if($('dashboard').hidden){$('overviewCards').replaceChildren();$('overviewChart').replaceChildren();$('overviewPeriod').textContent='';}else abrirModulo()}).observe($('dashboard'),{attributes:true,attributeFilter:['hidden']});
+new MutationObserver(()=>{if($('dashboard').hidden){$('overviewCards').replaceChildren();$('overviewChart').replaceChildren();$('overviewPeriod').textContent='';moduloAtual=null;}else abrirModulo()}).observe($('dashboard'),{attributes:true,attributeFilter:['hidden']});
 abrirModulo();
