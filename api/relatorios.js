@@ -15,9 +15,11 @@ const {data,error}=await supabaseAdmin.from('relatorios_semestrais').select('id,
 if(error)throw error;
 return res.status(200).json({relatorios:data});
 }
-const {ano,semestre,motivo}=req.body||{};
+const {ano,semestre,motivo,id}=req.body||{};
+if(typeof id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return res.status(400).json({erro:'Identificador inválido'});
 if(!Number.isInteger(ano)||ano<2000||ano>9999||![1,2].includes(semestre)||typeof motivo!=='string'||!motivo.trim()||motivo.trim().length>300)return res.status(400).json({erro:'Dados inválidos'});
-const {data,error}=await supabaseAdmin.rpc('consolidar_semestre',{p_ano:ano,p_semestre:semestre,p_motivo:motivo.trim(),p_admin:s.adminId});
+const {data,error}=await supabaseAdmin.rpc('consolidar_semestre',{p_ano:ano,p_semestre:semestre,p_motivo:motivo.trim(),p_admin:s.adminId,p_id:id});
+if(error?.code==='23505')return res.status(409).json({erro:'Identificador em conflito'});
 if(error?.code==='22023')return res.status(400).json({erro:'Semestre ainda aberto ou dados inválidos'});
 if(error)throw error;
 return res.status(201).json({id:data});
