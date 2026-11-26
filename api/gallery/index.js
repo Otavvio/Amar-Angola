@@ -53,8 +53,8 @@ export default async function handler(req, res) {
     const sessao = await verificarSessao(req);
     if (!sessao) return res.status(401).json({ erro: 'Não autenticado' });
 
-    const { nome, base64 } = req.body || {};
-    if (typeof nome !== 'string' || nome.length > 255 || typeof base64 !== 'string' || base64.length > 2800000 || !base64) {
+    const { nome, base64, autorizacao } = req.body || {};
+    if (autorizacao !== true || typeof nome !== 'string' || nome.length > 255 || typeof base64 !== 'string' || base64.length > 2800000 || !base64) {
       return res.status(400).json({ erro: 'Dados incompletos' });
     }
 
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
       await supabaseAdmin.storage.from('galeria').remove([caminho]);
       return res.status(500).json({ erro: 'Erro ao salvar registro' });
     }
-    await auditar(sessao.adminId,'enviar_privado','galeria',data.id);
+    await auditar(sessao.adminId,'enviar_privado','galeria',data.id,{autorizacao_armazenamento_confirmada:true});
     const {data: signed} = await supabaseAdmin.storage.from('galeria').createSignedUrl(caminho, 300);
     return res.status(201).json({id:data.id,url:signed?.signedUrl || null});
   }
