@@ -36,7 +36,9 @@ export default async function handler(req, res) {
 
   // Mensagem genérica de propósito: não revelar se foi o usuário ou a
   // senha que estava errada.
-  if (error || !admin) {
+  if (error) return res.status(503).json({erro:'Login temporariamente indisponível'});
+  if (!admin) {
+    await bcrypt.hash(password,12);
     return res.status(401).json({ erro: 'Credenciais inválidas' });
   }
 
