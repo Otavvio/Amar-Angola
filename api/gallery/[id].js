@@ -17,10 +17,9 @@ export default async function handler(req, res) {
   if(req.method==='PATCH'){
     const {titulo,descricao,evento,estado,autorizacao_ref,autorizacao_confirmada}=req.body||{};
     if(typeof titulo!=='string'||!titulo.trim()||titulo.trim().length>100||typeof descricao!=='string'||descricao.length>300||typeof evento!=='string'||evento.length>100||!['privada','oculta','aprovada'].includes(estado)||typeof autorizacao_ref!=='string'||autorizacao_ref.length>100||(estado==='aprovada'&&!autorizacao_ref.trim())||(autorizacao_ref.trim()&&autorizacao_confirmada!==true))return res.status(400).json({erro:'Dados inválidos ou autorização ausente'});
-    const {data,error}=await supabaseAdmin.from('gallery_items').update({titulo:titulo.trim(),descricao:descricao.trim(),evento:evento.trim(),estado,autorizacao_ref:autorizacao_ref.trim()||null,autorizacao_verificada_em:autorizacao_ref.trim()?new Date().toISOString():null,autorizacao_verificada_por:autorizacao_ref.trim()?sessao.adminId:null}).eq('id',id).select('id').maybeSingle();
-    if(error)return res.status(503).json({erro:'Falha ao atualizar'});
+    const {data,error}=await supabaseAdmin.rpc('atualizar_galeria_auditada',{p_id:id,p_admin:sessao.adminId,p_titulo:titulo,p_descricao:descricao,p_evento:evento,p_estado:estado,p_ref:autorizacao_ref,p_confirmada:autorizacao_confirmada===true});
+    if(error)return res.status(error.code==='22023'?400:503).json({erro:'Falha ao atualizar com auditoria'});
     if(!data)return res.status(404).json({erro:'Foto não encontrada'});
-    await auditar(sessao.adminId,'atualizar','galeria',id,{estado,autorizacao_confirmada:autorizacao_confirmada===true});
     return res.status(200).json({ok:true});
   }
   const { data: item, error: erroBusca } = await supabaseAdmin
