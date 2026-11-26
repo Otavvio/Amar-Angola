@@ -14,6 +14,7 @@ export default async function handler(req, res) {
   }
 
   if (!protegerMutacao(req,res)) return;
+  if(process.env.VISITS_ENABLED !== 'true')return res.status(200).json({contabilizada:false});
   const cookies = parse(req.headers.cookie || '');
   if (cookies[COOKIE_NAME]) {
     return res.status(200).json({ contabilizada: false });
