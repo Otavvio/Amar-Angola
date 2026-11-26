@@ -1,4 +1,4 @@
-import { protegerMutacao, auditar } from '../../lib/security.js';
+import { protegerMutacao } from '../../lib/security.js';
 import { tratarImagem } from '../../lib/images.js';
 import crypto from 'crypto';
 import { supabaseAdmin } from '../../lib/supabase.js';
@@ -71,19 +71,10 @@ export default async function handler(req, res) {
 
 
 
-    const { data, error } = await supabaseAdmin
-      .from('gallery_items')
-      .insert({ url: caminho, storage_path: caminho, tipo: 'image', nome: 'Foto do projeto' })
-      .select()
-      .single();
-
-    if (error) {
-      await supabaseAdmin.storage.from('galeria').remove([caminho]);
-      return res.status(500).json({ erro: 'Erro ao salvar registro' });
-    }
-    await auditar(sessao.adminId,'enviar_privado','galeria',data.id,{autorizacao_armazenamento_confirmada:true});
+    const {data,error}=await supabaseAdmin.rpc('registrar_galeria_auditada',{p_caminho:caminho,p_admin:sessao.adminId,p_autorizacao:autorizacao});
+    if(error){return res.status(503).json({erro:'Falha ao registrar imagem; solicite revisão administrativa'});}
     const {data: signed} = await supabaseAdmin.storage.from('galeria').createSignedUrl(caminho, 300);
-    return res.status(201).json({id:data.id,url:signed?.signedUrl || null});
+    return res.status(201).json({id:data,url:signed?.signedUrl || null});
   }
 
   return res.status(405).json({ erro: 'Método não permitido' });
