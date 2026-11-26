@@ -15,12 +15,12 @@ export default async function handler(req, res) {
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return res.status(400).json({erro: 'ID inválido'});
 
   if(req.method==='PATCH'){
-    const {titulo,descricao,evento,estado,autorizacao_ref}=req.body||{};
-    if(typeof titulo!=='string'||!titulo.trim()||titulo.trim().length>100||typeof descricao!=='string'||descricao.length>300||typeof evento!=='string'||evento.length>100||!['privada','oculta','aprovada'].includes(estado)||typeof autorizacao_ref!=='string'||autorizacao_ref.length>100||(estado==='aprovada'&&!autorizacao_ref.trim()))return res.status(400).json({erro:'Dados inválidos ou autorização ausente'});
+    const {titulo,descricao,evento,estado,autorizacao_ref,autorizacao_confirmada}=req.body||{};
+    if(typeof titulo!=='string'||!titulo.trim()||titulo.trim().length>100||typeof descricao!=='string'||descricao.length>300||typeof evento!=='string'||evento.length>100||!['privada','oculta','aprovada'].includes(estado)||typeof autorizacao_ref!=='string'||autorizacao_ref.length>100||(estado==='aprovada'&&!autorizacao_ref.trim())||(autorizacao_ref.trim()&&autorizacao_confirmada!==true))return res.status(400).json({erro:'Dados inválidos ou autorização ausente'});
     const {data,error}=await supabaseAdmin.from('gallery_items').update({titulo:titulo.trim(),descricao:descricao.trim(),evento:evento.trim(),estado,autorizacao_ref:autorizacao_ref.trim()||null,autorizacao_verificada_em:autorizacao_ref.trim()?new Date().toISOString():null,autorizacao_verificada_por:autorizacao_ref.trim()?sessao.adminId:null}).eq('id',id).select('id').maybeSingle();
     if(error)return res.status(503).json({erro:'Falha ao atualizar'});
     if(!data)return res.status(404).json({erro:'Foto não encontrada'});
-    await auditar(sessao.adminId,'atualizar','galeria',id,{estado});
+    await auditar(sessao.adminId,'atualizar','galeria',id,{estado,autorizacao_confirmada:autorizacao_confirmada===true});
     return res.status(200).json({ok:true});
   }
   const { data: item, error: erroBusca } = await supabaseAdmin
