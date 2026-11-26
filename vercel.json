@@ -39,6 +39,6 @@
       ]
     }
   ],
-  "buildCommand": "npm run check && npm run build",
+  "buildCommand": "npm run check && node --test tests/images.test.js && npm run build",
   "outputDirectory": "dist"
 }
